@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import Control.Monad.Fix
+import Data.Foldable
 import qualified Data.ByteString as B
 import Language.Core.Parser (parser)
 import Options.Applicative
@@ -28,13 +30,46 @@ main = runCLI =<< execParser opts
       "core-dump (ddc) - GHC Core analyzer"
     )
 
+stripHeader :: StringBuffer.StringBuffer -> StringBuffer.StringBuffer
+stripHeader = fix
+  ( \f buf ->
+    let Just line0 = StringBuffer.atLine 1 buf
+        len0       = StringBuffer.cur line0
+    in  ( if eqBuffer
+             line0
+             ( StringBuffer.stringToStringBuffer
+               "==================== Tidy Core ====================\n"
+             )
+          then id
+          else f
+        )
+          $ StringBuffer.offsetBytes len0 buf
+  )
+ where
+  eqBuffer :: StringBuffer.StringBuffer -> StringBuffer.StringBuffer -> Bool
+  eqBuffer buf1 buf2
+    | StringBuffer.atEnd buf1 && StringBuffer.atEnd buf2
+    = True
+    | otherwise
+    = let (b1, buf1') = StringBuffer.nextChar buf1
+          (b2, buf2') = StringBuffer.nextChar buf1
+      in  b1 == b2 && eqBuffer buf1' buf2'
+
+dropWhileSB
+  :: (Char -> Bool) -> StringBuffer.StringBuffer -> StringBuffer.StringBuffer
+dropWhileSB f buf =
+  let (b, bs) = StringBuffer.nextChar buf
+  in  if f b then dropWhileSB f bs else buf
+
 runCLI :: Arg -> IO ()
 runCLI arg = do
   dflags  <- GHC.runGhc (Just GHC.Paths.libdir) GHC.getSessionDynFlags
-  filebuf <- StringBuffer.hGetStringBuffer (filepath arg)
+  filebuf <- fmap (dropWhileSB (/= '-'))
+    $ StringBuffer.hGetStringBuffer (filepath arg)
 
   let result = Lexer.lexTokenStream filebuf (SrcLoc.mkRealSrcLoc "" 0 0) dflags
   case result of
-    Lexer.POk _ v ->
+    Lexer.POk _ v -> do
+      print $ map SrcLoc.unLoc v
       putStrLn $ Outputable.showSDoc dflags $ Outputable.ppr $ parser
         (map SrcLoc.unLoc v)

@@ -18,8 +18,9 @@ extra-source-files:  CHANGELOG.md
 
 executable ddc
   main-is:             Main.hs
-  -- other-modules:
+  other-modules:
   -- other-extensions:
+  build-tools:         happy, alex
   build-depends:
     base ^>=4.12.0.0,
     bytestring,

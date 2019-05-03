@@ -1,10 +1,14 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
 import qualified Data.ByteString as B
 import Options.Applicative
+import qualified Lexer
 import qualified GHC
 import qualified GHC.Paths
 import qualified Outputable
+import qualified SrcLoc
+import qualified StringBuffer
 
 data Arg = Arg {
   filepath :: FilePath
@@ -25,5 +29,9 @@ main = runCLI =<< execParser opts
 
 runCLI :: Arg -> IO ()
 runCLI arg = do
-  src <- B.readFile (filepath arg)
-  B.putStrLn src
+  dflags  <- GHC.runGhc (Just GHC.Paths.libdir) GHC.getSessionDynFlags
+  filebuf <- StringBuffer.hGetStringBuffer (filepath arg)
+
+  let result = Lexer.lexTokenStream filebuf (SrcLoc.mkRealSrcLoc "" 0 0) dflags
+  case result of
+    Lexer.POk _ v -> print $ map SrcLoc.unLoc v

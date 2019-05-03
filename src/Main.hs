@@ -2,6 +2,7 @@
 module Main where
 
 import qualified Data.ByteString as B
+import Language.Core.Parser (parser)
 import Options.Applicative
 import qualified Lexer
 import qualified GHC
@@ -34,4 +35,6 @@ runCLI arg = do
 
   let result = Lexer.lexTokenStream filebuf (SrcLoc.mkRealSrcLoc "" 0 0) dflags
   case result of
-    Lexer.POk _ v -> print $ map SrcLoc.unLoc v
+    Lexer.POk _ v ->
+      putStrLn $ Outputable.showSDoc dflags $ Outputable.ppr $ parser
+        (map SrcLoc.unLoc v)

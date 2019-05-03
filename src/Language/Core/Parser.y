@@ -50,6 +50,6 @@ body        : VAR       { Var $1 }
 
 {
 
-happyError tokens = error $ "Parse error\n" ++ show tokens
+happyError tokens = error $ "Parse error\n" ++ show (take 10 tokens)
 
 }

@@ -19,6 +19,7 @@ extra-source-files:  CHANGELOG.md
 executable ddc
   main-is:             Main.hs
   other-modules:
+    Language.Core.Lexer
     Language.Core.Parser
   -- other-extensions:
   build-tools:         happy, alex

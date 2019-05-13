@@ -16,12 +16,12 @@ category:            Language
 build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
-executable ddc
-  main-is:             Main.hs
-  other-modules:
+library
+  exposed-modules:
     Language.Core.Lexer
     Language.Core.Parser
-  -- other-extensions:
+  default-extensions:
+    OverloadedStrings
   build-tools:         happy, alex
   build-depends:
     array,
@@ -32,3 +32,24 @@ executable ddc
     ghc-paths,
   hs-source-dirs:      src
   default-language:    Haskell2010
+
+executable ddc
+  main-is:             Main.hs
+  -- other-extensions:
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is: Driver.hs
+  build-tool-depends:
+    tasty-discover:tasty-discover >= 4.2 && < 4.3,
+  build-depends:
+    base,
+    core-dump,
+    tasty,
+    tasty-hspec,
+  hs-source-dirs:      test
+  default-language:    Haskell2010
+  default-extensions:
+    OverloadedStrings

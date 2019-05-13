@@ -24,7 +24,7 @@ $graphic    = $printable # $white
 tokens :-
     $white+     ;
 
-    "--".*      ;
+    "--".*      { TokenLineComment }
 
     let         { \s -> TokenLet }
     case        { \s -> TokenCase }
@@ -77,4 +77,6 @@ data Token
     | TokenDigit ByteString
     | TokenCon ByteString
     | TokenVar ByteString
+    | TokenLineComment ByteString
+    deriving (Eq, Show)
 }

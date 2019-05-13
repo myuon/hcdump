@@ -6,5 +6,14 @@ import Test.Tasty.Hspec hiding (Failure, Success)
 spec_lexer :: Spec
 spec_lexer = do
   describe "alexScanTokens" $ do
-    it "lexes a line comment" $ do
-      alexScanTokens "-- foobar" `shouldBe` [TokenLineComment "-- foobar"]
+    it "lexes a line comment"
+      $          alexScanTokens "-- foobar"
+      `shouldBe` [TokenLineComment "-- foobar"]
+    it "lexes a type declaration"
+      $          alexScanTokens "lvl2_rdgT :: [Char]"
+      `shouldBe` [ TokenVar "lvl2_rdgT"
+                 , TokenDColon
+                 , TokenLBracket
+                 , TokenCon "Char"
+                 , TokenRBracket
+                 ]

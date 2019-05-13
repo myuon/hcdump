@@ -20,6 +20,8 @@ $graphic    = $printable # $white
 @id         = [A-Za-z][A-Za-z'_]*
 @escape     = '\\' ($printable | 'x' $hexdig+ | 'o' $octdig+ | $digit+)
 @char       = ($graphic # $special) | @escape
+@varid      = [a-z_][a-zA-Z0-9_'\#]*
+@conid      = [A-Z][a-zA-Z0-9_'\#]*
 
 tokens :-
     $white+     ;
@@ -48,6 +50,8 @@ tokens :-
 
     @string       { TokenStrLit }
     @char         { TokenCharLit }
+    @varid        { TokenVar }
+    @conid        { TokenCon }
 
 {
 

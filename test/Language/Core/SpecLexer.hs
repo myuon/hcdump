@@ -9,6 +9,9 @@ spec_lexer = do
     it "lexes a line comment"
       $          alexScanTokens "-- foobar"
       `shouldBe` [TokenLineComment "-- foobar"]
+    it "lexes a primitive type"
+      $          alexScanTokens "Addr#"
+      `shouldBe` [TokenCon "Addr#"]
     it "lexes a type declaration"
       $          alexScanTokens "lvl2_rdgT :: [Char]"
       `shouldBe` [ TokenVar "lvl2_rdgT"

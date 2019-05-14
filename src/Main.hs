@@ -3,7 +3,7 @@ module Main where
 
 import Control.Monad.Fix
 import qualified Data.ByteString as B
-import Data.ByteString.Internal (ByteString(..))
+import qualified Data.StringBuffer as SB
 import Language.Core.Lexer (lexTokenStream)
 import Language.Core.Parser (parser)
 import Options.Applicative
@@ -12,7 +12,6 @@ import qualified GHC
 import qualified GHC.Paths
 import qualified Outputable
 import qualified SrcLoc
-import qualified StringBuffer
 
 data Arg = Arg {
   filepath :: Maybe FilePath
@@ -31,46 +30,36 @@ main = runCLI =<< execParser opts
       "core-dump (hcdump) - GHC Core analyzer"
     )
 
-stripHeader :: StringBuffer.StringBuffer -> StringBuffer.StringBuffer
+stripHeader :: SB.StringBuffer -> SB.StringBuffer
 stripHeader = fix
   ( \f buf ->
-    let Just line0 = StringBuffer.atLine 1 buf
-        len0       = StringBuffer.cur line0
+    let Just line0 = SB.atLine 1 buf
+        len0       = SB.cur line0
     in  ( if eqBuffer
              line0
-             ( StringBuffer.stringToStringBuffer
+             ( SB.stringToStringBuffer
                "==================== Tidy Core ====================\n"
              )
           then id
           else f
         )
-          $ StringBuffer.offsetBytes len0 buf
+          $ SB.offsetBytes len0 buf
   )
  where
-  eqBuffer :: StringBuffer.StringBuffer -> StringBuffer.StringBuffer -> Bool
+  eqBuffer :: SB.StringBuffer -> SB.StringBuffer -> Bool
   eqBuffer buf1 buf2
-    | StringBuffer.atEnd buf1 && StringBuffer.atEnd buf2
+    | SB.atEnd buf1 && SB.atEnd buf2
     = True
     | otherwise
-    = let (b1, buf1') = StringBuffer.nextChar buf1
-          (b2, buf2') = StringBuffer.nextChar buf1
+    = let (b1, buf1') = SB.nextChar buf1
+          (b2, buf2') = SB.nextChar buf1
       in  b1 == b2 && eqBuffer buf1' buf2'
-
-dropWhileSB
-  :: (Char -> Bool) -> StringBuffer.StringBuffer -> StringBuffer.StringBuffer
-dropWhileSB f buf =
-  let (b, bs) = StringBuffer.nextChar buf
-  in  if f b then dropWhileSB f bs else buf
-
-bsTosb :: ByteString -> StringBuffer.StringBuffer
-bsTosb (PS p l o) = StringBuffer.StringBuffer p o l
 
 runCLI :: Arg -> IO ()
 runCLI arg = do
   buf <- case filepath arg of
-    Nothing -> fmap bsTosb B.getContents
-    Just path ->
-      fmap (dropWhileSB (/= '-')) $ StringBuffer.hGetStringBuffer path
+    Nothing   -> fmap SB.fromByteString B.getContents
+    Just path -> fmap (SB.dropWhile (/= '-')) $ SB.hGetStringBuffer path
 
   dflags <- GHC.runGhc (Just GHC.Paths.libdir) GHC.getSessionDynFlags
   result <- lexTokenStream buf

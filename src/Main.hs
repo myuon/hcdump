@@ -5,7 +5,10 @@ import Control.Monad.Fix
 import Data.Foldable
 import qualified Data.ByteString as B
 import Language.Core.Parser (parser)
+import qualified GHC.LanguageExtensions.Type as LangExt
 import Options.Applicative
+import qualified DynFlags
+import qualified EnumSet
 import qualified Lexer
 import qualified GHC
 import qualified GHC.Paths
@@ -63,7 +66,13 @@ dropWhileSB f buf =
 
 runCLI :: Arg -> IO ()
 runCLI arg = do
-  dflags  <- GHC.runGhc (Just GHC.Paths.libdir) GHC.getSessionDynFlags
+  dflags <- GHC.runGhc (Just GHC.Paths.libdir) $ do
+    dflags <- GHC.getSessionDynFlags
+
+    let dflags' = DynFlags.xopt_set dflags LangExt.MagicHash
+    GHC.setSessionDynFlags dflags'
+    return dflags'
+
   filebuf <- fmap (dropWhileSB (/= '-'))
     $ StringBuffer.hGetStringBuffer (filepath arg)
 

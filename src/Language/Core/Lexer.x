@@ -19,9 +19,12 @@ $graphic    = $printable # $white
 @string     = \" ($graphic # \")* \"
 @id         = [A-Za-z][A-Za-z'_]*
 @escape     = '\\' ($printable | 'x' $hexdig+ | 'o' $octdig+ | $digit+)
-@char       = ($graphic # $special) | @escape
+@char       = \' ($graphic # \') \'
 @varid      = [a-z_][a-zA-Z0-9_'\#]*
 @conid      = [A-Z][a-zA-Z0-9_'\#]*
+@qualified  = ((@conid \.)+)? @varid
+@integer    = [\+\-]?$digit+ \#?
+@double     = [\+\-]?$digit+ \. $digit+ \#?
 
 tokens :-
     $white+     ;
@@ -50,8 +53,10 @@ tokens :-
 
     @string       { TokenStrLit }
     @char         { TokenCharLit }
-    @varid        { TokenVar }
+    @qualified    { TokenVar }
     @conid        { TokenCon }
+    @integer      { TokenInteger }
+    @double       { TokenDouble }
 
 {
 
@@ -78,7 +83,8 @@ data Token
 
     | TokenStrLit ByteString
     | TokenCharLit ByteString
-    | TokenDigit ByteString
+    | TokenInteger ByteString
+    | TokenDouble ByteString
     | TokenCon ByteString
     | TokenVar ByteString
     | TokenLineComment ByteString

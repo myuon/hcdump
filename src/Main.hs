@@ -3,6 +3,7 @@ module Main where
 
 import Control.Monad.Fix
 import qualified Data.ByteString as B
+import Data.ByteString.Internal (ByteString(..))
 import Language.Core.Lexer (lexTokenStream)
 import Language.Core.Parser (parser)
 import Options.Applicative
@@ -14,16 +15,12 @@ import qualified SrcLoc
 import qualified StringBuffer
 
 data Arg = Arg {
-  filepath :: Maybe FilePath,
-  input :: Maybe B.ByteString
+  filepath :: Maybe FilePath
 } deriving (Eq, Show)
 
 argParser :: Parser Arg
-argParser =
-  Arg
-    <$> optional
-          (strOption (long "input" <> short 'i' <> help "Path to the source"))
-    <*> optional (argument str (metavar "STDIN"))
+argParser = Arg <$> optional
+  (strOption (long "input" <> short 'i' <> help "Path to the source"))
 
 main :: IO ()
 main = runCLI =<< execParser opts
@@ -65,13 +62,18 @@ dropWhileSB f buf =
   let (b, bs) = StringBuffer.nextChar buf
   in  if f b then dropWhileSB f bs else buf
 
+bsTosb :: ByteString -> StringBuffer.StringBuffer
+bsTosb (PS p l o) = StringBuffer.StringBuffer p o l
+
 runCLI :: Arg -> IO ()
 runCLI arg = do
-  filebuf <- fmap (dropWhileSB (/= '-'))
-    $ StringBuffer.hGetStringBuffer ((\(Just x) -> x) $ filepath arg)
+  buf <- case filepath arg of
+    Nothing -> fmap bsTosb B.getContents
+    Just path ->
+      fmap (dropWhileSB (/= '-')) $ StringBuffer.hGetStringBuffer path
 
   dflags <- GHC.runGhc (Just GHC.Paths.libdir) GHC.getSessionDynFlags
-  result <- lexTokenStream filebuf
+  result <- lexTokenStream buf
 
   case result of
     Lexer.POk _ v -> do

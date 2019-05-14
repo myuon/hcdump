@@ -1,9 +1,14 @@
 {
-module Language.Core.Parser ( parser ) where    
+module Language.Core.Parser (
+  parser,
+  parseByteString,
+) where    
 
 import ApiAnnotation (IsUnicodeSyntax(..))
+import qualified Data.ByteString as B
 import Language.Core.Lexer
 import Language.Core.Syntax
+import qualified SrcLoc
 }
 
 %name parser
@@ -49,7 +54,12 @@ body        :: { Expr Var }
 body        : VAR       { Var $1 }
 
 {
-
 happyError tokens = error $ "Parse error\n" ++ show (take 10 tokens)
 
+parseByteString :: B.ByteString -> IO DumpSimpl
+parseByteString buf = do
+  result <- lexTokenStream buf
+
+  case result of
+    POk _ v -> return $ parser (map SrcLoc.unLoc v)
 }

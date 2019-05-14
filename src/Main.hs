@@ -58,8 +58,9 @@ stripHeader = fix
 runCLI :: Arg -> IO ()
 runCLI arg = do
   buf <- case filepath arg of
-    Nothing   -> fmap SB.fromByteString B.getContents
-    Just path -> fmap (SB.dropWhile (/= '-')) $ SB.hGetStringBuffer path
+    Nothing -> B.getContents
+    Just path ->
+      fmap (SB.toByteString . SB.dropWhile (/= '-')) $ SB.hGetStringBuffer path
 
   dflags <- GHC.runGhc (Just GHC.Paths.libdir) GHC.getSessionDynFlags
   result <- lexTokenStream buf

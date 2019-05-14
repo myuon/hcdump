@@ -25,6 +25,7 @@ import FastString (FastString)
     GblId   { ITconid "GblId" }
     Caf     { ITconid "Caf" }
     Unf     { ITconid "Unf" }
+    Str     { ITconid "Str" }
 
     VAR     { ITvarid $$ }
     qVAR    { ITqvarid $$ }
@@ -44,6 +45,7 @@ bind    : LCOMMENT
 
 bstat   :: { FastString }
 bstat   : '[' GblId ']'       { "" }
+        | '[' GblId ',' Str '=' VAR ',' Unf '=' CON '[' ']' ']'     { $6 }
         | '[' GblId ',' Caf '=' CON ',' Unf '=' CON '[' ']' ']'     { $6 }
 
 var     :: { Var }
@@ -63,9 +65,13 @@ typedecl    :: { Type }
 typedecl    : '::' type      { $2 }
 
 expr    :: { Expr Var }
-expr    : var       { Var $1 }
-        | PSTRING   { Lit () }
-        | expr expr { App $1 $2 }
+expr    : expr expr_terminal { App $1 $2 }
+        | expr_terminal      { $1 }
+
+expr_terminal   :: { Expr Var }
+expr_terminal   : var       { Var $1 }
+                | con       { Var $1 }
+                | PSTRING   { Lit () }
 
 {
 happyError tokens = error $ "Parse error\n" ++ show (take 10 tokens)

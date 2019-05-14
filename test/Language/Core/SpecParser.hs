@@ -37,3 +37,28 @@ spec_parser = do
                 (Var (Token "lvl1_rdgS"))
           )
         )
+    it "parses lvl2_rdgS" $ do
+      simpl <- parseByteString $ B.intercalate
+        "\n"
+        [ "-- RHS size: {terms: 4, types: 0, coercions: 0, joins: 0/0}"
+        , "lvl13_rdh4 :: GHC.Stack.Types.CallStack"
+        , "[GblId, Str=m2, Unf=OtherCon []]"
+        , "lvl13_rdh4"
+        , "  = GHC.Stack.Types.PushCallStack"
+        , "     lvl2_rdgT lvl12_rdh3 GHC.Stack.Types.EmptyCallStack"
+        ]
+      shouldBe simpl $ NonRec
+        (Token "lvl13_rdh4")
+        ( Func
+          (TyConApp (QToken "GHC.Stack.Types" "CallStack") [])
+          "m2"
+          ( App
+            ( App
+              ( App (Var (QToken "GHC.Stack.Types" "PushCallStack"))
+                    (Var (Token "lvl2_rdgT"))
+              )
+              (Var (Token "lvl12_rdh3"))
+            )
+            (Var (QToken "GHC.Stack.Types" "EmptyCallStack"))
+          )
+        )

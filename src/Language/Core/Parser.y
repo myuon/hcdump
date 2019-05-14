@@ -24,39 +24,16 @@ import qualified SrcLoc
 
 %%
 
-simpl       :: { DumpSimpl }
-simpl       : modstat decls         { DumpSimpl $1 (Decls $2) }
+bind    :: { Bind Var }
+bind    : VAR typedecl      { NonRec $1 (Func $2 "" (Var $1)) }
 
-modstat     :: { ModuleStat }
-modstat     : {- empty -}       { "" }
-
-decls       :: { [Bind Var] }
-decls       : {- empty -}       { [] }
-            | decl decls     { $1 : $2 }
-
-decl        :: { Bind Var }
-decl        : func      { $1 }
-
-func        :: { Bind Var }
-func        : LCOMMENT
-                VAR '::' type
-                func_stat
-                VAR '=' body
-                { NonRec $2 (Func $4 $5 $8) }
-
-type        :: { Type }
-type        : VAR       { TyVarTy $1 }
-
-func_stat   :: { FuncStat }
-func_stat   : '[' VAR ']'   { $2 }
-
-body        :: { Expr Var }
-body        : VAR       { Var $1 }
+typedecl    :: { Type }
+typedecl    : '::' VAR      { TyVarTy $2 }
 
 {
 happyError tokens = error $ "Parse error\n" ++ show (take 10 tokens)
 
-parseByteString :: B.ByteString -> IO DumpSimpl
+parseByteString :: B.ByteString -> IO (Bind Var)
 parseByteString buf = do
   result <- lexTokenStream buf
 

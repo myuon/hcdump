@@ -57,6 +57,7 @@ test-suite tests
     tasty-discover:tasty-discover >= 4.2 && < 4.3,
   build-depends:
     base,
+    bytestring,
     core-dump,
     tasty,
     tasty-hspec,

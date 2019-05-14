@@ -18,32 +18,36 @@ extra-source-files:  CHANGELOG.md
 
 library
   exposed-modules:
+    Language.Core.Syntax
     Language.Core.Lexer
     Language.Core.Parser
   default-extensions:
     OverloadedStrings
-  build-tools:         happy, alex
+  build-tools:         happy
   build-depends:
     array,
     base ^>=4.12.0.0,
     bytestring,
     ghc,
+    ghc-boot-th,
+    ghc-paths,
   hs-source-dirs:      src
   default-language:    Haskell2010
+  ghc-options: -Wall -Wno-name-shadowing
 
 executable ddc
-  main-is:             Main.hs
+  main-is:             src/Main.hs
   -- other-extensions:
   build-depends:
     array,
     base,
     bytestring,
+    core-dump,
     ghc,
     ghc-paths,
-    ghc-boot-th,
     optparse-applicative,
-  hs-source-dirs:      src
   default-language:    Haskell2010
+  ghc-options: -Wall -Wno-name-shadowing
 
 test-suite tests
   type: exitcode-stdio-1.0

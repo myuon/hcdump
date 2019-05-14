@@ -8,9 +8,6 @@ import Language.Core.Lexer (lexTokenStream)
 import Language.Core.Parser (parser)
 import Options.Applicative
 import qualified Lexer
-import qualified GHC
-import qualified GHC.Paths
-import qualified Outputable
 import qualified SrcLoc
 
 data Arg = Arg {
@@ -61,8 +58,6 @@ runCLI arg = do
     Nothing -> B.getContents
     Just path ->
       fmap (SB.toByteString . SB.dropWhile (/= '-')) $ SB.hGetStringBuffer path
-
-  dflags <- GHC.runGhc (Just GHC.Paths.libdir) GHC.getSessionDynFlags
   result <- lexTokenStream buf
 
   case result of

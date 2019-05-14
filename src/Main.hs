@@ -26,7 +26,7 @@ main = runCLI =<< execParser opts
   opts = info
     (argParser <**> helper)
     ( fullDesc <> progDesc "Analyze the dumped GHC Core program." <> header
-      "core-dump (ddc) - GHC Core analyzer"
+      "core-dump (hcdump) - GHC Core analyzer"
     )
 
 stripHeader :: StringBuffer.StringBuffer -> StringBuffer.StringBuffer

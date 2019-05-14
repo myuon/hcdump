@@ -2,6 +2,7 @@
 module Main where
 
 import Control.Monad.Fix
+import qualified Data.ByteString as B
 import Language.Core.Lexer (lexTokenStream)
 import Language.Core.Parser (parser)
 import Options.Applicative
@@ -13,12 +14,16 @@ import qualified SrcLoc
 import qualified StringBuffer
 
 data Arg = Arg {
-  filepath :: FilePath
+  filepath :: Maybe FilePath,
+  input :: Maybe B.ByteString
 } deriving (Eq, Show)
 
 argParser :: Parser Arg
 argParser =
-  Arg <$> strOption (long "input" <> short 'i' <> help "Path to the source")
+  Arg
+    <$> optional
+          (strOption (long "input" <> short 'i' <> help "Path to the source"))
+    <*> optional (argument str (metavar "STDIN"))
 
 main :: IO ()
 main = runCLI =<< execParser opts
@@ -63,7 +68,7 @@ dropWhileSB f buf =
 runCLI :: Arg -> IO ()
 runCLI arg = do
   filebuf <- fmap (dropWhileSB (/= '-'))
-    $ StringBuffer.hGetStringBuffer (filepath arg)
+    $ StringBuffer.hGetStringBuffer ((\(Just x) -> x) $ filepath arg)
 
   dflags <- GHC.runGhc (Just GHC.Paths.libdir) GHC.getSessionDynFlags
   result <- lexTokenStream filebuf

@@ -25,7 +25,7 @@ data Func b
 type FuncStat = FastString
 type KindOrType = Type
 type TyVarBinder = ()
-type TyCon = ()
+type TyCon = Var
 
 data Type
   = TyVarTy Var

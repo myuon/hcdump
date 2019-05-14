@@ -27,6 +27,7 @@ import FastString (FastString)
     Unf     { ITconid "Unf" }
 
     VAR     { ITvarid $$ }
+    qVAR    { ITqvarid $$ }
     CON     { ITconid $$ }
     qCON    { ITqconid $$ }
     LCOMMENT    { ITlineComment $$ }
@@ -38,18 +39,33 @@ bind    :: { Bind Var }
 bind    : LCOMMENT
         VAR typedecl
         bstat
-        VAR '=' body
+        VAR '=' expr
         { NonRec (Token $2) (Func $3 $4 $7) }
 
 bstat   :: { FastString }
 bstat   : '[' GblId ']'       { "" }
         | '[' GblId ',' Caf '=' CON ',' Unf '=' CON '[' ']' ']'     { $6 }
 
-typedecl    :: { Type }
-typedecl    : '::' qCON      { TyVarTy (uncurry QToken $2) }
+var     :: { Var }
+var     : VAR       { Token $1 }
+        | qVAR      { uncurry QToken $1 }
 
-body    :: { Expr Var }
-body    : PSTRING   { Lit () }
+con     :: { Var }
+con     : CON       { Token $1 }
+        | qCON      { uncurry QToken $1 }
+
+type        :: { Type }
+type        : var       { TyVarTy $1 }
+            | con       { TyConApp $1 [] }
+            | '[' type ']'  { TyConApp (Token "List") [$2] }
+
+typedecl    :: { Type }
+typedecl    : '::' type      { $2 }
+
+expr    :: { Expr Var }
+expr    : var       { Var $1 }
+        | PSTRING   { Lit () }
+        | expr expr { App $1 $2 }
 
 {
 happyError tokens = error $ "Parse error\n" ++ show (take 10 tokens)

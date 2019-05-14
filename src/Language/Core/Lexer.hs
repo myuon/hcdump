@@ -1,4 +1,7 @@
-module Language.Core.Lexer where
+module Language.Core.Lexer (
+  Lexer.Token(..),
+  lexTokenStream,
+) where
 
 import qualified DynFlags
 import qualified GHC

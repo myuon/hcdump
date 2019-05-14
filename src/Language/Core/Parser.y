@@ -1,8 +1,8 @@
 {
 module Language.Core.Parser ( parser ) where    
 
-import Lexer (Token(..))
 import ApiAnnotation (IsUnicodeSyntax(..))
+import Language.Core.Lexer
 import Language.Core.Syntax
 }
 

@@ -35,7 +35,11 @@ data Type
   | FunTy Type Type
   deriving (Eq, Show)
 
-type Var = FastString
+data Var
+  = Token FastString
+  | QToken FastString FastString
+  deriving (Eq, Show)
+
 type Id = Var
 type Coercion = Type
 type Arg b = Expr b

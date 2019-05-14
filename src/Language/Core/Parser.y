@@ -9,6 +9,7 @@ import qualified Data.ByteString as B
 import Language.Core.Lexer
 import Language.Core.Syntax
 import qualified SrcLoc
+import FastString (FastString)
 }
 
 %name parser
@@ -19,16 +20,36 @@ import qualified SrcLoc
     '['     { ITobrack }
     ']'     { ITcbrack }
     '='     { ITequal }
+    ','     { ITcomma }
+
+    GblId   { ITconid "GblId" }
+    Caf     { ITconid "Caf" }
+    Unf     { ITconid "Unf" }
+
     VAR     { ITvarid $$ }
+    CON     { ITconid $$ }
+    qCON    { ITqconid $$ }
     LCOMMENT    { ITlineComment $$ }
+    PSTRING { ITprimstring _ $$ }
 
 %%
 
 bind    :: { Bind Var }
-bind    : VAR typedecl      { NonRec $1 (Func $2 "" (Var $1)) }
+bind    : LCOMMENT
+        VAR typedecl
+        bstat
+        VAR '=' body
+        { NonRec (Token $2) (Func $3 $4 $7) }
+
+bstat   :: { FastString }
+bstat   : '[' GblId ']'       { "" }
+        | '[' GblId ',' Caf '=' CON ',' Unf '=' CON '[' ']' ']'     { $6 }
 
 typedecl    :: { Type }
-typedecl    : '::' VAR      { TyVarTy $2 }
+typedecl    : '::' qCON      { TyVarTy (uncurry QToken $2) }
+
+body    :: { Expr Var }
+body    : PSTRING   { Lit () }
 
 {
 happyError tokens = error $ "Parse error\n" ++ show (take 10 tokens)

@@ -68,5 +68,4 @@ runCLI arg = do
   case result of
     Lexer.POk _ v -> do
       print $ map SrcLoc.unLoc v
-      putStrLn $ Outputable.showSDoc dflags $ Outputable.ppr $ parser
-        (map SrcLoc.unLoc v)
+      print $ parser (map SrcLoc.unLoc v)

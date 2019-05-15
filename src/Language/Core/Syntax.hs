@@ -1,6 +1,7 @@
 module Language.Core.Syntax where
 
 import Prelude hiding ((<>))
+import qualified Data.ByteString as B
 import FastString (FastString)
 
 data DumpSimpl
@@ -46,7 +47,11 @@ type Coercion = Type
 type Arg b = Expr b
 type Alt b = ()
 type Tickish b = ()
-type Literal = ()
+
+data Literal
+  = LitNumber Integer
+  | MachStr B.ByteString
+  deriving (Eq, Show)
 
 data Expr b
   = Var Id

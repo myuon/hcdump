@@ -22,7 +22,7 @@ spec_parser = do
         ( Func
           (TyConApp (QToken "GHC.Prim" "Addr#") [])
           [("IdType", "GlobalId"), ("Caf", "NoCafRefs"), ("Unf", "OtherCon []")]
-          (Lit ())
+          (Lit (MachStr "error"))
         )
 
     it "parses lvl2_rdgS" $ do
@@ -68,3 +68,24 @@ spec_parser = do
             (Var (QToken "GHC.Stack.Types" "EmptyCallStack"))
           )
         )
+
+    it "parses lvl10_rdh1" $ do
+      simpl <- parseByteString $ B.intercalate
+        "\n"
+        [ "-- RHS size: {terms: 2, types: 0, coercions: 0, joins: 0/0}"
+        , "lvl10_rdh1 :: Int"
+        , "[GblId, Caf=NoCafRefs, Str=m, Unf=OtherCon []]"
+        , "lvl10_rdh1 = GHC.Types.I# 16#"
+        ]
+      shouldBe simpl $ Right $ NonRec
+        (Token "lvl10_rdh1")
+        ( Func
+          (TyConApp (Token "Int") [])
+          [ ("IdType", "GlobalId")
+          , ("Caf"   , "NoCafRefs")
+          , ("Str"   , "m")
+          , ("Unf"   , "OtherCon []")
+          ]
+          (App (Var (QToken "GHC.Types" "I#")) (Lit (LitNumber 16)))
+        )
+

@@ -41,6 +41,7 @@ import qualified SrcLoc
     qCON    { ITqconid $$ }
     LCOMMENT    { ITlineComment $$ }
     PSTRING { ITprimstring _ $$ }
+    PINTEGER { ITprimint _ $$ }
 
 %%
 
@@ -89,7 +90,8 @@ expr    : expr expr_terminal { App $1 $2 }
 expr_terminal   :: { Expr Var }
 expr_terminal   : var       { Var $1 }
                 | con       { Var $1 }
-                | PSTRING   { Lit () }
+                | PSTRING   { Lit (MachStr $1) }
+                | PINTEGER  { Lit (LitNumber $1) }
 
 {
 happyError tokens = Left $ "Parse error\n" ++ show (take 10 tokens)

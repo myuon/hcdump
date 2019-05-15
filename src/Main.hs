@@ -9,6 +9,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Language.Core.Parser
 import Options.Applicative
+import System.Console.Pretty
 
 data Arg = Arg {
   filepath :: Maybe FilePath
@@ -61,4 +62,4 @@ runCLI arg = do
 
   forM_ (T.splitOn "\n\n" bufText) $ \ts -> do
     result <- parseByteString $ TE.encodeUtf8 ts
-    either putStrLn print result
+    either (putStrLn . color Red) print result

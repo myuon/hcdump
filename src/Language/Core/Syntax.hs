@@ -18,11 +18,12 @@ data Bind b
   | Rec [(b, Func b)]
   deriving (Eq, Show)
 
+type IdInfo = [(FastString, FastString)]
+
 data Func b
-  = Func Type FuncStat (Expr b)
+  = Func Type IdInfo (Expr b)
   deriving (Eq, Show)
 
-type FuncStat = FastString
 type KindOrType = Type
 type TyVarBinder = ()
 type TyCon = Var

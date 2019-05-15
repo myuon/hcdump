@@ -27,6 +27,10 @@ import qualified SrcLoc
     ','     { ITcomma }
 
     GblId   { ITconid "GblId" }
+    LclIdX  { ITconid "LclIdX" }
+    LclId   { ITconid "LclId" }
+    OtherCon   { ITconid "OtherCon" }
+
     Caf     { ITconid "Caf" }
     Unf     { ITconid "Unf" }
     Str     { ITconid "Str" }
@@ -43,14 +47,23 @@ import qualified SrcLoc
 bind    :: { Bind Var }
 bind    : LCOMMENT
         VAR typedecl
-        bstat
+        id_info
         VAR '=' expr
         { NonRec (Token $2) (Func $3 $4 $7) }
 
-bstat   :: { FastString }
-bstat   : '[' GblId ']'       { "" }
-        | '[' GblId ',' Str '=' VAR ',' Unf '=' CON '[' ']' ']'     { $6 }
-        | '[' GblId ',' Caf '=' CON ',' Unf '=' CON '[' ']' ']'     { $6 }
+id_info   :: { IdInfo }
+id_info   : '[' id_info_list ']'       { $2 }
+
+id_info_list  :: { [(FastString, FastString)] }
+id_info_list  : {- empty -}     { [] }
+              | id_info_item ',' id_info_list   { $1 : $3 }
+
+id_info_item  :: { (FastString, FastString) }
+id_info_item  : GblId     { ("IdType", "GlobalId") }
+              | LclIdX    { ("IdType", "ExportedId") }
+              | LclId     { ("IdType", "LocalId") }
+              | Caf '=' CON   { ("Caf", $3) }
+              | Unf '=' OtherCon '[' ']'    { ("Unf", "OtherCon []") }
 
 var     :: { Var }
 var     : VAR       { Token $1 }

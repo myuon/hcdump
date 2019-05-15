@@ -17,9 +17,13 @@ spec_parser = do
         , "[GblId, Caf=NoCafRefs, Unf=OtherCon []]"
         , "lvl1_rdgS = \"error\"#"
         ]
-      shouldBe simpl $ NonRec
+      shouldBe simpl $ Right $ NonRec
         (Token "lvl1_rdgS")
-        (Func (TyConApp (QToken "GHC.Prim" "Addr#") []) "NoCafRefs" (Lit ()))
+        ( Func (TyConApp (QToken "GHC.Prim" "Addr#") [])
+               [("Caf", "NoCafRefs")]
+               (Lit ())
+        )
+
     it "parses lvl2_rdgS" $ do
       simpl <- parseByteString $ B.intercalate
         "\n"
@@ -28,15 +32,16 @@ spec_parser = do
         , "[GblId]"
         , "lvl2_rdgT = GHC.CString.unpackCString# lvl1_rdgS"
         ]
-      shouldBe simpl $ NonRec
+      shouldBe simpl $ Right $ NonRec
         (Token "lvl2_rdgT")
         ( Func
           (TyConApp (Token "List") [TyConApp (Token "Char") []])
-          ""
+          []
           ( App (Var (QToken "GHC.CString" "unpackCString#"))
                 (Var (Token "lvl1_rdgS"))
           )
         )
+
     it "parses lvl2_rdgS" $ do
       simpl <- parseByteString $ B.intercalate
         "\n"
@@ -47,11 +52,11 @@ spec_parser = do
         , "  = GHC.Stack.Types.PushCallStack"
         , "     lvl2_rdgT lvl12_rdh3 GHC.Stack.Types.EmptyCallStack"
         ]
-      shouldBe simpl $ NonRec
+      shouldBe simpl $ Right $ NonRec
         (Token "lvl13_rdh4")
         ( Func
           (TyConApp (QToken "GHC.Stack.Types" "CallStack") [])
-          "m2"
+          []
           ( App
             ( App
               ( App (Var (QToken "GHC.Stack.Types" "PushCallStack"))

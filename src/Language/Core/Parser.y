@@ -8,12 +8,16 @@ import ApiAnnotation (IsUnicodeSyntax(..))
 import qualified Data.ByteString as B
 import Language.Core.Lexer
 import Language.Core.Syntax
-import qualified SrcLoc
 import FastString (FastString)
+import qualified GHC
+import qualified GHC.Paths
+import qualified Outputable
+import qualified SrcLoc
 }
 
 %name parser
 %tokentype { Token }
+%monad { Either String } { (>>=) } { return }
 
 %token
     '::'    { ITdcolon NormalSyntax }
@@ -74,12 +78,17 @@ expr_terminal   : var       { Var $1 }
                 | PSTRING   { Lit () }
 
 {
-happyError tokens = error $ "Parse error\n" ++ show (take 10 tokens)
+happyError tokens = Left $ "Parse error\n" ++ show (take 10 tokens)
 
-parseByteString :: B.ByteString -> IO (Bind Var)
+parseByteString :: B.ByteString -> IO (Either String (Bind Var))
 parseByteString buf = do
   result <- lexTokenStream buf
+  dflags <- GHC.runGhc (Just GHC.Paths.libdir) GHC.getSessionDynFlags
 
   case result of
     POk _ v -> return $ parser (map SrcLoc.unLoc v)
+    PFailed _ _ md -> return $ Left $ Outputable.renderWithStyle
+        dflags
+        md
+        (Outputable.defaultErrStyle dflags)
 }

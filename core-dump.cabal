@@ -45,7 +45,9 @@ executable hcdump
     bytestring,
     hcdump,
     ghc,
+    ghc-paths,
     optparse-applicative,
+    text,
   default-language:    Haskell2010
   ghc-options: -Wall -Wno-name-shadowing
 

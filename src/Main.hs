@@ -1,13 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import Control.Monad
 import Control.Monad.Fix
 import qualified Data.ByteString as B
 import qualified Data.StringBuffer as SB
-import Language.Core.Lexer (lexTokenStream)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import Language.Core.Lexer
 import Language.Core.Parser (parser)
 import Options.Applicative
-import qualified Lexer
+import qualified GHC
+import qualified GHC.Paths
+import qualified Outputable
 import qualified SrcLoc
 
 data Arg = Arg {
@@ -54,13 +59,22 @@ stripHeader = fix
 
 runCLI :: Arg -> IO ()
 runCLI arg = do
-  buf <- case filepath arg of
-    Nothing -> B.getContents
-    Just path ->
-      fmap (SB.toByteString . SB.dropWhile (/= '-')) $ SB.hGetStringBuffer path
-  result <- lexTokenStream buf
+  dflags <- GHC.runGhc (Just GHC.Paths.libdir) GHC.getSessionDynFlags
 
-  case result of
-    Lexer.POk _ v -> do
-      print $ map SrcLoc.unLoc v
-      print $ parser (map SrcLoc.unLoc v)
+  buf    <- case filepath arg of
+    Nothing   -> B.getContents
+    Just path -> fmap SB.toByteString $ SB.hGetStringBuffer path
+  let bufText = TE.decodeUtf8 buf
+
+  forM_ (T.splitOn "\n\n" bufText) $ \ts -> do
+    print ts
+    result <- lexTokenStream $ TE.encodeUtf8 ts
+
+    case result of
+      POk _ v -> do
+        print $ map SrcLoc.unLoc v
+        print $ parser (map SrcLoc.unLoc v)
+      PFailed _ _ md -> putStrLn $ Outputable.renderWithStyle
+        dflags
+        md
+        (Outputable.defaultErrStyle dflags)

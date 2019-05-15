@@ -55,7 +55,7 @@ id_info   :: { IdInfo }
 id_info   : '[' id_info_list ']'       { $2 }
 
 id_info_list  :: { [(FastString, FastString)] }
-id_info_list  : {- empty -}     { [] }
+id_info_list  : id_info_item     { [$1] }
               | id_info_item ',' id_info_list   { $1 : $3 }
 
 id_info_item  :: { (FastString, FastString) }
@@ -63,6 +63,7 @@ id_info_item  : GblId     { ("IdType", "GlobalId") }
               | LclIdX    { ("IdType", "ExportedId") }
               | LclId     { ("IdType", "LocalId") }
               | Caf '=' CON   { ("Caf", $3) }
+              | Str '=' VAR   { ("Str", $3) }
               | Unf '=' OtherCon '[' ']'    { ("Unf", "OtherCon []") }
 
 var     :: { Var }

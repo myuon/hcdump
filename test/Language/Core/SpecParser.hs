@@ -19,9 +19,10 @@ spec_parser = do
         ]
       shouldBe simpl $ Right $ NonRec
         (Token "lvl1_rdgS")
-        ( Func (TyConApp (QToken "GHC.Prim" "Addr#") [])
-               [("Caf", "NoCafRefs")]
-               (Lit ())
+        ( Func
+          (TyConApp (QToken "GHC.Prim" "Addr#") [])
+          [("IdType", "GlobalId"), ("Caf", "NoCafRefs"), ("Unf", "OtherCon []")]
+          (Lit ())
         )
 
     it "parses lvl2_rdgS" $ do
@@ -36,7 +37,7 @@ spec_parser = do
         (Token "lvl2_rdgT")
         ( Func
           (TyConApp (Token "List") [TyConApp (Token "Char") []])
-          []
+          [("IdType", "GlobalId")]
           ( App (Var (QToken "GHC.CString" "unpackCString#"))
                 (Var (Token "lvl1_rdgS"))
           )
@@ -56,7 +57,7 @@ spec_parser = do
         (Token "lvl13_rdh4")
         ( Func
           (TyConApp (QToken "GHC.Stack.Types" "CallStack") [])
-          []
+          [("IdType", "GlobalId"), ("Str", "m2"), ("Unf", "OtherCon []")]
           ( App
             ( App
               ( App (Var (QToken "GHC.Stack.Types" "PushCallStack"))

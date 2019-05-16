@@ -2,7 +2,8 @@
 module Language.Core.Parser (
   parser,
   parseByteString,
-) where    
+  parseByteStringWith,
+) where
 
 import ApiAnnotation (IsUnicodeSyntax(..))
 import qualified Data.ByteString as B
@@ -96,10 +97,9 @@ expr_terminal   : var       { Var $1 }
 {
 happyError tokens = Left $ "Parse error\n" ++ show (take 10 tokens)
 
-parseByteString :: B.ByteString -> IO (Either String (Bind Var))
-parseByteString buf = do
+parseByteStringWith :: GHC.DynFlags -> B.ByteString -> IO (Either String (Bind Var))
+parseByteStringWith dflags buf = do
   result <- lexTokenStream buf
-  dflags <- GHC.runGhc (Just GHC.Paths.libdir) GHC.getSessionDynFlags
 
   case result of
     POk _ v -> return $ parser (map SrcLoc.unLoc v)
@@ -107,4 +107,9 @@ parseByteString buf = do
         dflags
         md
         (Outputable.defaultErrStyle dflags)
+
+parseByteString :: B.ByteString -> IO (Either String (Bind Var))
+parseByteString buf = do
+  dflags <- getDynFlags
+  parseByteStringWith dflags buf
 }

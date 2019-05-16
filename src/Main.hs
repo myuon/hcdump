@@ -7,6 +7,7 @@ import qualified Data.ByteString as B
 import qualified Data.StringBuffer as SB
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import Language.Core.Lexer
 import Language.Core.Parser
 import Language.Core.Syntax (Ppr(..))
 import Options.Applicative
@@ -57,11 +58,12 @@ stripHeader = fix
 
 runCLI :: Arg -> IO ()
 runCLI arg = do
-  buf <- case filepath arg of
+  dflags <- getDynFlags
+  buf    <- case filepath arg of
     Nothing   -> B.getContents
     Just path -> fmap SB.toByteString $ SB.hGetStringBuffer path
   let bufText = TE.decodeUtf8 buf
 
   forM_ (T.splitOn "\n\n" bufText) $ \ts -> do
-    result <- parseByteString $ TE.encodeUtf8 ts
+    result <- parseByteStringWith dflags $ TE.encodeUtf8 ts
     either (putStrLn . color Red) (\t -> putDoc $ ppr t <> "\n\n") result

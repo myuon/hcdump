@@ -62,7 +62,7 @@ data Type
 instance Ppr Type where
   ppr (TyVarTy v) = ppr v
   ppr (AppTy t1 t2) = ppr t1 <+> ppr t2
-  ppr (TyConApp t xs) = ppr t <+> hcat (map ppr xs)
+  ppr (TyConApp t xs) = ppr t <> hcat (map ppr xs)
 
 data Var
   = Token FastString
@@ -104,4 +104,5 @@ data Expr b
 instance Ppr (Expr Var) where
   ppr (Var x) = ppr x
   ppr (Lit lit) = ppr lit
-  ppr (App e1 e2) = ppr e1 <+> ppr e2
+  ppr (App e1 e2) = "(" <> ppr e1 <> ")" <+> "(" <> ppr e2 <> ")"
+  ppr (Type t) = "@" <+> ppr t

@@ -53,7 +53,7 @@ bind    : LCOMMENT
         { NonRec (Token $2) (Func $3 $4 $7) }
 
 id_info   :: { IdInfo }
-id_info   : '[' id_info_list ']'       { $2 }
+id_info   : '[' id_info_list ']'       { IdInfo $2 }
 
 id_info_list  :: { [(FastString, FastString)] }
 id_info_list  : id_info_item     { [$1] }

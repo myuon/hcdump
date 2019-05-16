@@ -8,8 +8,10 @@ import qualified Data.StringBuffer as SB
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Language.Core.Parser
+import Language.Core.Syntax (Ppr(..))
 import Options.Applicative
 import System.Console.Pretty
+import Text.PrettyPrint.ANSI.Leijen (putDoc)
 
 data Arg = Arg {
   filepath :: Maybe FilePath
@@ -62,4 +64,4 @@ runCLI arg = do
 
   forM_ (T.splitOn "\n\n" bufText) $ \ts -> do
     result <- parseByteString $ TE.encodeUtf8 ts
-    either (putStrLn . color Red) print result
+    either (putStrLn . color Red) (\t -> putDoc $ ppr t <> "\n\n") result

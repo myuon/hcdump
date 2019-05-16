@@ -2,7 +2,13 @@ module Language.Core.Syntax where
 
 import Prelude hiding ((<>))
 import qualified Data.ByteString as B
+import Data.List
 import FastString (FastString)
+import qualified FastString as FS
+import Text.PrettyPrint.ANSI.Leijen
+
+class Ppr p where
+  ppr :: p -> Doc
 
 data DumpSimpl
   = DumpSimpl ModuleStat Decls
@@ -19,7 +25,20 @@ data Bind b
   | Rec [(b, Func b)]
   deriving (Eq, Show)
 
-type IdInfo = [(FastString, FastString)]
+instance Ppr (Bind Var) where
+  ppr (NonRec id (Func typ info exp))
+    = ppr id <+> string "::" <+> ppr typ
+    <$$> ppr info
+    <$$> ppr id <+> string "=" <+> ppr exp
+
+newtype IdInfo = IdInfo { getIdInfo :: [(FastString, FastString)] }
+  deriving (Eq, Show)
+
+instance Ppr IdInfo where
+  ppr (IdInfo xs)
+    = string "["
+    <> hcat (intersperse (string ",") $ map (\(x,y) -> string (FS.unpackFS x) <+> string "=" <+> string (FS.unpackFS y)) xs)
+    <> string "]"
 
 data Func b
   = Func Type IdInfo (Expr b)
@@ -37,10 +56,19 @@ data Type
   | FunTy Type Type
   deriving (Eq, Show)
 
+instance Ppr Type where
+  ppr (TyVarTy v) = ppr v
+  ppr (AppTy t1 t2) = ppr t1 <+> ppr t2
+  ppr (TyConApp t xs) = ppr t <+> hcat (map ppr xs)
+
 data Var
   = Token FastString
   | QToken FastString FastString
   deriving (Eq, Show)
+
+instance Ppr Var where
+  ppr (Token s) = string $ FS.unpackFS s
+  ppr (QToken q s) = string (FS.unpackFS q) <> "." <> string (FS.unpackFS s)
 
 type Id = Var
 type Coercion = Type
@@ -53,6 +81,10 @@ data Literal
   | MachStr B.ByteString
   deriving (Eq, Show)
 
+instance Ppr Literal where
+  ppr (LitNumber n) = integer n
+  ppr (MachStr bs) = string $ show bs
+
 data Expr b
   = Var Id
   | Lit Literal
@@ -64,3 +96,8 @@ data Expr b
   | Tick (Tickish Id) (Expr b)
   | Coercion Coercion
   deriving (Eq, Show)
+
+instance Ppr (Expr Var) where
+  ppr (Var x) = ppr x
+  ppr (Lit lit) = ppr lit
+  ppr (App e1 e2) = ppr e1 <+> ppr e2

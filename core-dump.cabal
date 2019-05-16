@@ -24,8 +24,10 @@ library
     Language.Core.Parser
   default-extensions:
     OverloadedStrings
+    FlexibleInstances
   build-tools:         happy
   build-depends:
+    ansi-wl-pprint,
     array,
     base ^>=4.12.0.0,
     bytestring,
@@ -40,6 +42,7 @@ executable hcdump
   main-is:             src/Main.hs
   -- other-extensions:
   build-depends:
+    ansi-wl-pprint,
     array,
     base,
     bytestring,

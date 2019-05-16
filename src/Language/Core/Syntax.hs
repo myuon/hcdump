@@ -27,18 +27,21 @@ data Bind b
 
 instance Ppr (Bind Var) where
   ppr (NonRec id (Func typ info exp))
-    = ppr id <+> string "::" <+> ppr typ
+    = green (ppr id) <+> red (string "::") <+> ppr typ
     <$$> ppr info
-    <$$> ppr id <+> string "=" <+> ppr exp
+    <$$> ppr id <+> red (string "=") <+> ppr exp
 
 newtype IdInfo = IdInfo { getIdInfo :: [(FastString, FastString)] }
   deriving (Eq, Show)
 
 instance Ppr IdInfo where
   ppr (IdInfo xs)
-    = string "["
-    <> hcat (intersperse (string ",") $ map (\(x,y) -> string (FS.unpackFS x) <+> string "=" <+> string (FS.unpackFS y)) xs)
-    <> string "]"
+    = red (string "[")
+    <> hcat (intersperse (red (string ",")) $ map (\(x,y) ->
+      string (FS.unpackFS x)
+      <+> red (string "=")
+      <+> string (FS.unpackFS y)) xs)
+    <> red (string "]")
 
 data Func b
   = Func Type IdInfo (Expr b)
@@ -68,7 +71,7 @@ data Var
 
 instance Ppr Var where
   ppr (Token s) = string $ FS.unpackFS s
-  ppr (QToken q s) = string (FS.unpackFS q) <> "." <> string (FS.unpackFS s)
+  ppr (QToken q s) = dullmagenta (string (FS.unpackFS q)) <> "." <> string (FS.unpackFS s)
 
 type Id = Var
 type Coercion = Type
@@ -82,8 +85,8 @@ data Literal
   deriving (Eq, Show)
 
 instance Ppr Literal where
-  ppr (LitNumber n) = integer n
-  ppr (MachStr bs) = string $ show bs
+  ppr (LitNumber n) = blue $ integer n
+  ppr (MachStr bs) = yellow $ string $ show bs
 
 data Expr b
   = Var Id

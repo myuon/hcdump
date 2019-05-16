@@ -80,13 +80,13 @@ type Alt b = ()
 type Tickish b = ()
 
 data Literal
-  = LitNumber Integer
-  | MachStr B.ByteString
+  = LitNumber Integer Bool
+  | MachStr B.ByteString Bool
   deriving (Eq, Show)
 
 instance Ppr Literal where
-  ppr (LitNumber n) = blue $ integer n
-  ppr (MachStr bs) = yellow $ string $ show bs
+  ppr (LitNumber n b) = blue $ integer n <> (if b then "#" else "")
+  ppr (MachStr bs b) = yellow $ string (show bs) <> (if b then "#" else "")
 
 data Expr b
   = Var Id

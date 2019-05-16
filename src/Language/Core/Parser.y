@@ -36,13 +36,13 @@ import qualified SrcLoc
     Unf     { ITconid "Unf" }
     Str     { ITconid "Str" }
 
-    VAR     { ITvarid $$ }
-    qVAR    { ITqvarid $$ }
-    CON     { ITconid $$ }
-    qCON    { ITqconid $$ }
+    VAR         { ITvarid $$ }
+    qVAR        { ITqvarid $$ }
+    CON         { ITconid $$ }
+    qCON        { ITqconid $$ }
     LCOMMENT    { ITlineComment $$ }
-    PSTRING { ITprimstring _ $$ }
-    PINTEGER { ITprimint _ $$ }
+    PSTRING     { ITprimstring _ $$ }
+    PINTEGER    { ITprimint _ $$ }
 
 %%
 
@@ -91,8 +91,8 @@ expr    : expr expr_terminal { App $1 $2 }
 expr_terminal   :: { Expr Var }
 expr_terminal   : var       { Var $1 }
                 | con       { Var $1 }
-                | PSTRING   { Lit (MachStr $1) }
-                | PINTEGER  { Lit (LitNumber $1) }
+                | PSTRING   { Lit (MachStr $1 True) }
+                | PINTEGER  { Lit (LitNumber $1 True) }
 
 {
 happyError tokens = Left $ "Parse error\n" ++ show (take 10 tokens)

@@ -21,8 +21,13 @@ spec_parser = do
         (Token "lvl1_rdgS")
         ( Func
           (TyConApp (QToken "GHC.Prim" "Addr#") [])
-          [("IdType", "GlobalId"), ("Caf", "NoCafRefs"), ("Unf", "OtherCon []")]
-          (Lit (MachStr "error"))
+          ( IdInfo
+            [ ("IdType", "GlobalId")
+            , ("Caf"   , "NoCafRefs")
+            , ("Unf"   , "OtherCon []")
+            ]
+          )
+          (Lit (MachStr "error" True))
         )
 
     it "parses lvl2_rdgS" $ do
@@ -37,13 +42,13 @@ spec_parser = do
         (Token "lvl2_rdgT")
         ( Func
           (TyConApp (Token "List") [TyConApp (Token "Char") []])
-          [("IdType", "GlobalId")]
+          (IdInfo [("IdType", "GlobalId")])
           ( App (Var (QToken "GHC.CString" "unpackCString#"))
                 (Var (Token "lvl1_rdgS"))
           )
         )
 
-    it "parses lvl2_rdgS" $ do
+    it "parses lvl13_rdh4" $ do
       simpl <- parseByteString $ B.intercalate
         "\n"
         [ "-- RHS size: {terms: 4, types: 0, coercions: 0, joins: 0/0}"
@@ -57,7 +62,9 @@ spec_parser = do
         (Token "lvl13_rdh4")
         ( Func
           (TyConApp (QToken "GHC.Stack.Types" "CallStack") [])
-          [("IdType", "GlobalId"), ("Str", "m2"), ("Unf", "OtherCon []")]
+          ( IdInfo
+            [("IdType", "GlobalId"), ("Str", "m2"), ("Unf", "OtherCon []")]
+          )
           ( App
             ( App
               ( App (Var (QToken "GHC.Stack.Types" "PushCallStack"))
@@ -81,11 +88,40 @@ spec_parser = do
         (Token "lvl10_rdh1")
         ( Func
           (TyConApp (Token "Int") [])
-          [ ("IdType", "GlobalId")
-          , ("Caf"   , "NoCafRefs")
-          , ("Str"   , "m")
-          , ("Unf"   , "OtherCon []")
-          ]
-          (App (Var (QToken "GHC.Types" "I#")) (Lit (LitNumber 16)))
+          ( IdInfo
+            [ ("IdType", "GlobalId")
+            , ("Caf"   , "NoCafRefs")
+            , ("Str"   , "m")
+            , ("Unf"   , "OtherCon []")
+            ]
+          )
+          (App (Var (QToken "GHC.Types" "I#")) (Lit (LitNumber 16 True)))
         )
 
+    it "parses lvl33_rhdp" $ do
+      simpl <- parseByteString $ B.intercalate
+        "\n"
+        [ "-- RHS size: {terms: 7, types: 2, coercions: 0, joins: 0/0}"
+        , "lvl33_rdhp :: Data.Vector.Fusion.Util.Id Int"
+        , "[GblId, Str=x]"
+        , "lvl33_rdhp"
+        , "  = Data.Vector.Internal.Check.$werror"
+        , "      @ (Data.Vector.Fusion.Util.Id Int)"
+        , "      (GHC.CString.unpackCString# lvl31_rdhn)"
+        , "      291#"
+        , "      (GHC.CString.unpackCString# lvl32_rdho)"
+        , "      Data.Vector.Fusion.Stream.Monadic.emptyStream"
+        ]
+      shouldBe simpl $ Right $ NonRec
+        (Token "lvl10_rdh1")
+        ( Func
+          (TyConApp (Token "Int") [])
+          ( IdInfo
+            [ ("IdType", "GlobalId")
+            , ("Caf"   , "NoCafRefs")
+            , ("Str"   , "m")
+            , ("Unf"   , "OtherCon []")
+            ]
+          )
+          (App (Var (QToken "GHC.Types" "I#")) (Lit (LitNumber 16 True)))
+        )

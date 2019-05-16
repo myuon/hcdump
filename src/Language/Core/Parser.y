@@ -17,32 +17,34 @@ import qualified SrcLoc
 }
 
 %name parser
-%tokentype { Token }
+%tokentype { SrcLoc.GenLocated SrcLoc.SrcSpan Token }
 %monad { Either String } { (>>=) } { return }
 
 %token
-    '::'    { ITdcolon NormalSyntax }
-    '['     { ITobrack }
-    ']'     { ITcbrack }
-    '='     { ITequal }
-    ','     { ITcomma }
+    '::'    { SrcLoc.L _ (ITdcolon NormalSyntax) }
+    '<0>['  { SrcLoc.L (SrcLoc.RealSrcSpan l) (ITobrack) | SrcLoc.srcSpanStartCol l == 1 }
+    '['     { SrcLoc.L _ (ITobrack) }
+    ']'     { SrcLoc.L _ (ITcbrack) }
+    '='     { SrcLoc.L _ (ITequal) }
+    ','     { SrcLoc.L _ (ITcomma) }
+    '@'     { SrcLoc.L _ (ITat) }
 
-    GblId   { ITconid "GblId" }
-    LclIdX  { ITconid "LclIdX" }
-    LclId   { ITconid "LclId" }
-    OtherCon   { ITconid "OtherCon" }
+    GblId     { SrcLoc.L _ (ITconid "GblId") }
+    LclIdX    { SrcLoc.L _ (ITconid "LclIdX") }
+    LclId     { SrcLoc.L _ (ITconid "LclId") }
+    OtherCon  { SrcLoc.L _ (ITconid "OtherCon") }
 
-    Caf     { ITconid "Caf" }
-    Unf     { ITconid "Unf" }
-    Str     { ITconid "Str" }
+    Caf     { SrcLoc.L _ (ITconid "Caf") }
+    Unf     { SrcLoc.L _ (ITconid "Unf") }
+    Str     { SrcLoc.L _ (ITconid "Str") }
 
-    VAR         { ITvarid $$ }
-    qVAR        { ITqvarid $$ }
-    CON         { ITconid $$ }
-    qCON        { ITqconid $$ }
-    LCOMMENT    { ITlineComment $$ }
-    PSTRING     { ITprimstring _ $$ }
-    PINTEGER    { ITprimint _ $$ }
+    VAR         { SrcLoc.L _ (ITvarid $$) }
+    qVAR        { SrcLoc.L _ (ITqvarid $$) }
+    CON         { SrcLoc.L _ (ITconid $$) }
+    qCON        { SrcLoc.L _ (ITqconid $$) }
+    LCOMMENT    { SrcLoc.L _ (ITlineComment $$) }
+    PSTRING     { SrcLoc.L _ (ITprimstring _ $$) }
+    PINTEGER    { SrcLoc.L _ (ITprimint _ $$) }
 
 %%
 
@@ -54,7 +56,7 @@ bind    : LCOMMENT
         { NonRec (Token $2) (Func $3 $4 $7) }
 
 id_info   :: { IdInfo }
-id_info   : '[' id_info_list ']'       { IdInfo $2 }
+id_info   : '<0>[' id_info_list ']'       { IdInfo $2 }
 
 id_info_list  :: { [(FastString, FastString)] }
 id_info_list  : id_info_item     { [$1] }
@@ -77,16 +79,21 @@ con     : CON       { Token $1 }
         | qCON      { uncurry QToken $1 }
 
 type        :: { Type }
-type        : var       { TyVarTy $1 }
-            | con       { TyConApp $1 [] }
-            | '[' type ']'  { TyConApp (Token "List") [$2] }
+type        : type type_terminal    { AppTy $1 $2 }
+            | type_terminal         { $1 }
+
+type_terminal   :: { Type }
+type_terminal   : var           { TyVarTy $1 }
+                | con           { TyConApp $1 [] }
+                | '[' type ']'  { TyConApp (Token "List") [$2] }
 
 typedecl    :: { Type }
 typedecl    : '::' type      { $2 }
 
 expr    :: { Expr Var }
-expr    : expr expr_terminal { App $1 $2 }
-        | expr_terminal      { $1 }
+expr    : expr expr_terminal    { App $1 $2 }
+        | expr '@' type         { App $1 (Type $3) }
+        | expr_terminal         { $1 }
 
 expr_terminal   :: { Expr Var }
 expr_terminal   : var       { Var $1 }
@@ -95,14 +102,19 @@ expr_terminal   : var       { Var $1 }
                 | PINTEGER  { Lit (LitNumber $1 True) }
 
 {
-happyError tokens = Left $ "Parse error\n" ++ show (take 10 tokens)
+happyError tokens = Left $ "Parse error\n" ++ show (take 10 $ map SrcLoc.unLoc tokens)
+
+-- instance (Show l, Show e) => Show (SrcLoc.GenLocated l e) where
+--   show (SrcLoc.L l e) = "L (" ++ show l ++ ") (" ++ show e ++ ")"
 
 parseByteStringWith :: GHC.DynFlags -> B.ByteString -> IO (Either String (Bind Var))
 parseByteStringWith dflags buf = do
   result <- lexTokenStream buf
 
   case result of
-    POk _ v -> return $ parser (map SrcLoc.unLoc v)
+    POk _ v -> do
+--      print $ map SrcLoc.unLoc v
+      return $ parser v
     PFailed _ _ md -> return $ Left $ Outputable.renderWithStyle
         dflags
         md

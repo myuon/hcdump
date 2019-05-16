@@ -97,6 +97,7 @@ data Expr b
   | Case (Expr b) b Type [Alt b]
   | Cast (Expr b) Coercion
   | Tick (Tickish Id) (Expr b)
+  | Type Type
   | Coercion Coercion
   deriving (Eq, Show)
 

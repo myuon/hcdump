@@ -25,9 +25,12 @@ import qualified SrcLoc
     '<0>['  { SrcLoc.L (SrcLoc.RealSrcSpan l) (ITobrack) | SrcLoc.srcSpanStartCol l == 1 }
     '['     { SrcLoc.L _ (ITobrack) }
     ']'     { SrcLoc.L _ (ITcbrack) }
+    '('     { SrcLoc.L _ (IToparen) }
+    ')'     { SrcLoc.L _ (ITcparen) }
     '='     { SrcLoc.L _ (ITequal) }
     ','     { SrcLoc.L _ (ITcomma) }
     '@'     { SrcLoc.L _ (ITat) }
+    '$w/w'  { SrcLoc.L _ (ITqvarsym ($$,"$")) }
 
     GblId     { SrcLoc.L _ (ITconid "GblId") }
     LclIdX    { SrcLoc.L _ (ITconid "LclIdX") }
@@ -79,7 +82,8 @@ con     : CON       { Token $1 }
         | qCON      { uncurry QToken $1 }
 
 type        :: { Type }
-type        : type type_terminal    { AppTy $1 $2 }
+type        : '(' type ')'          { $2 }
+            | type type_terminal    { AppTy $1 $2 }
             | type_terminal         { $1 }
 
 type_terminal   :: { Type }
@@ -91,17 +95,25 @@ typedecl    :: { Type }
 typedecl    : '::' type      { $2 }
 
 expr    :: { Expr Var }
-expr    : expr expr_terminal    { App $1 $2 }
-        | expr '@' type         { App $1 (Type $3) }
-        | expr_terminal         { $1 }
+expr    : '(' expr ')'              { $2 }
+        | expr_terminal '@' type    { App $1 (Type $3) }
+        | expr_terminal             { $1 }
+        | expr expr_list            { foldl App $1 $2 }
+
+expr_list     : expr expr_list  { $1 : $2 }
+              | expr            { [$1] }
 
 expr_terminal   :: { Expr Var }
-expr_terminal   : var       { Var $1 }
-                | con       { Var $1 }
-                | PSTRING   { Lit (MachStr $1 True) }
-                | PINTEGER  { Lit (LitNumber $1 True) }
+expr_terminal   : '$w/w' var    { Var (wwVar $1 $2) }
+                | var           { Var $1 }
+                | con           { Var $1 }
+                | PSTRING       { Lit (MachStr $1 True) }
+                | PINTEGER      { Lit (LitNumber $1 True) }
 
 {
+wwVar :: FastString -> Var -> Var
+wwVar q (Token v) = QToken q ("$" <> v)
+
 happyError tokens = Left $ "Parse error\n" ++ show (take 10 $ map SrcLoc.unLoc tokens)
 
 -- instance (Show l, Show e) => Show (SrcLoc.GenLocated l e) where

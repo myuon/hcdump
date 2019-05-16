@@ -112,16 +112,38 @@ spec_parser = do
         , "      (GHC.CString.unpackCString# lvl32_rdho)"
         , "      Data.Vector.Fusion.Stream.Monadic.emptyStream"
         ]
-      shouldBe simpl $ Right $ NonRec
-        (Token "lvl10_rdh1")
-        ( Func
-          (TyConApp (Token "Int") [])
-          ( IdInfo
-            [ ("IdType", "GlobalId")
-            , ("Caf"   , "NoCafRefs")
-            , ("Str"   , "m")
-            , ("Unf"   , "OtherCon []")
-            ]
+      shouldBe simpl $ Right
+        ( NonRec
+          (Token "lvl33_rdhp")
+          ( Func
+            ( AppTy (TyConApp (QToken "Data.Vector.Fusion.Util" "Id") [])
+                    (TyConApp (Token "Int") [])
+            )
+            (IdInfo {getIdInfo = [("IdType", "GlobalId"), ("Str", "x")]})
+            ( App
+              ( App
+                ( App
+                  ( App
+                    ( App
+                      (Var (QToken "Data.Vector.Internal.Check" "$werror"))
+                      ( Type
+                        ( AppTy
+                          (TyConApp (QToken "Data.Vector.Fusion.Util" "Id") [])
+                          (TyConApp (Token "Int") [])
+                        )
+                      )
+                    )
+                    ( App (Var (QToken "GHC.CString" "unpackCString#"))
+                          (Var (Token "lvl31_rdhn"))
+                    )
+                  )
+                  (Lit (LitNumber 291 True))
+                )
+                ( App (Var (QToken "GHC.CString" "unpackCString#"))
+                      (Var (Token "lvl32_rdho"))
+                )
+              )
+              (Var (QToken "Data.Vector.Fusion.Stream.Monadic" "emptyStream"))
+            )
           )
-          (App (Var (QToken "GHC.Types" "I#")) (Lit (LitNumber 16 True)))
         )

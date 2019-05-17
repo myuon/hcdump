@@ -147,3 +147,62 @@ spec_parser = do
             )
           )
         )
+
+    it "parses :main" $ do
+      simpl <- parseByteString $ B.intercalate
+        "\n"
+        [ "-- RHS size: {terms: 1, types: 0, coercions: 3, joins: 0/0}"
+        , ":Main.main :: IO ()"
+        , "[GblId,"
+        , " Arity=1,"
+        , " Unf=Unf{Src=InlineStable, TopLvl=True, Value=True, ConLike=True,"
+        , "         WorkFree=True, Expandable=True,"
+        , "         Guidance=ALWAYS_IF(arity=0,unsat_ok=True,boring_ok=True)"
+        , "         Tmpl= Main.main2"
+        , "               `cast` (Sym (GHC.Types.N:IO[0] <()>_R)"
+        , "                       :: (GHC.Prim.State# GHC.Prim.RealWorld"
+        , "                           -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #))"
+        , "                          ~R# IO ())}]"
+        , ":Main.main"
+        , "  = Main.main2"
+        , "    `cast` (Sym (GHC.Types.N:IO[0] <()>_R)"
+        , "            :: (GHC.Prim.State# GHC.Prim.RealWorld"
+        , "                -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #))"
+        , "               ~R# IO ())"
+        ]
+      shouldBe simpl $ Right
+        ( NonRec
+          (Token "lvl33_rdhp")
+          ( Func
+            ( AppTy (TyConApp (QToken "Data.Vector.Fusion.Util" "Id") [])
+                    (TyConApp (Token "Int") [])
+            )
+            (IdInfo {getIdInfo = [("IdType", "GlobalId"), ("Str", "x")]})
+            ( App
+              ( App
+                ( App
+                  ( App
+                    ( App
+                      (Var (QToken "Data.Vector.Internal.Check" "$werror"))
+                      ( Type
+                        ( AppTy
+                          (TyConApp (QToken "Data.Vector.Fusion.Util" "Id") [])
+                          (TyConApp (Token "Int") [])
+                        )
+                      )
+                    )
+                    ( App (Var (QToken "GHC.CString" "unpackCString#"))
+                          (Var (Token "lvl31_rdhn"))
+                    )
+                  )
+                  (Lit (LitNumber 291 True))
+                )
+                ( App (Var (QToken "GHC.CString" "unpackCString#"))
+                      (Var (Token "lvl32_rdho"))
+                )
+              )
+              (Var (QToken "Data.Vector.Fusion.Stream.Monadic" "emptyStream"))
+            )
+          )
+        )
+    

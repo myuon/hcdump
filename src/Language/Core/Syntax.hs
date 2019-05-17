@@ -74,7 +74,6 @@ instance Ppr Var where
   ppr (QToken q s) = dullmagenta (string (FS.unpackFS q)) <> "." <> string (FS.unpackFS s)
 
 type Id = Var
-type Coercion = Type
 type Arg b = Expr b
 type Alt b = ()
 type Tickish b = ()
@@ -88,6 +87,9 @@ instance Ppr Literal where
   ppr (LitNumber n b) = blue $ integer n <> (if b then "#" else "")
   ppr (MachStr bs b) = yellow $ string (show bs) <> (if b then "#" else "")
 
+data Coercion = Coercion (Expr Var) Type
+  deriving (Eq, Show)
+
 data Expr b
   = Var Id
   | Lit Literal
@@ -98,7 +100,6 @@ data Expr b
   | Cast (Expr b) Coercion
   | Tick (Tickish Id) (Expr b)
   | Type Type
-  | Coercion Coercion
   deriving (Eq, Show)
 
 instance Ppr (Expr Var) where

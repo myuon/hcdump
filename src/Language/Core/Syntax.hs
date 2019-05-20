@@ -104,6 +104,7 @@ instance Ppr (Expr Var) where
   ppr (Lit lit) = ppr lit
   ppr (App e1 e2) = "(" <> ppr e1 <> ")" <+> "(" <> ppr e2 <> ")"
   ppr (Type t) = "@" <+> ppr t
+  ppr (Cast e _ _) = ppr e <+> blue "`cast`" <+> "(..)"
 
 data Role = Nominal | Representational | Phantom
   deriving (Eq, Show)

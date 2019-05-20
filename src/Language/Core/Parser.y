@@ -26,16 +26,24 @@ import qualified SrcLoc
     '<0>['  { SrcLoc.L (SrcLoc.RealSrcSpan l) (ITobrack) | SrcLoc.srcSpanStartCol l == 1 }
     '<0>:'  { SrcLoc.L (SrcLoc.RealSrcSpan l) (ITcolon) | SrcLoc.srcSpanStartCol l == 1 }
     '::'    { SrcLoc.L _ (ITdcolon NormalSyntax) }
+    ':'     { SrcLoc.L _ (ITcolon) }
     '['     { SrcLoc.L _ (ITobrack) }
     ']'     { SrcLoc.L _ (ITcbrack) }
     '{'     { SrcLoc.L _ (ITocurly) }
     '}'     { SrcLoc.L _ (ITccurly) }
     '('     { SrcLoc.L _ (IToparen) }
     ')'     { SrcLoc.L _ (ITcparen) }
+    '(#'    { SrcLoc.L _ (IToubxparen) }
+    '#)'    { SrcLoc.L _ (ITcubxparen) }
+    '<'     { SrcLoc.L _ (ITvarsym "<") }
+    '>'     { SrcLoc.L _ (ITvarsym ">") }
     '='     { SrcLoc.L _ (ITequal) }
     ','     { SrcLoc.L _ (ITcomma) }
     '@'     { SrcLoc.L _ (ITat) }
     '`'     { SrcLoc.L _ (ITbackquote) }
+    '_'     { SrcLoc.L _ (ITunderscore) }
+    '~'     { SrcLoc.L _ (ITtilde) }
+    '->'    { SrcLoc.L _ (ITrarrow NormalSyntax) }
     '$w/w'  { SrcLoc.L _ (ITqvarsym ($$,"$")) }
 
     Caf     { SrcLoc.L _ (ITconid "Caf") }
@@ -60,6 +68,14 @@ import qualified SrcLoc
 
     CAST        { SrcLoc.L _ (ITvarid "cast") }
 
+    SYM        { SrcLoc.L _ (ITconid "Sym") }
+    '_R'       { SrcLoc.L _ (ITvarid "_R") }
+    '_N'       { SrcLoc.L _ (ITvarid "_N") }
+    'R#'       { SrcLoc.L _ (ITconid "R#") }
+    'N#'       { SrcLoc.L _ (ITconid "N#") }
+    qR         { SrcLoc.L _ (ITqconid ("GHC.Types", "R")) }
+    qN         { SrcLoc.L _ (ITqconid ("GHC.Types", "N")) }
+
     VAR         { SrcLoc.L _ (ITvarid $$) }
     qVAR        { SrcLoc.L _ (ITqvarid $$) }
     CON         { SrcLoc.L _ (ITconid $$) }
@@ -75,7 +91,7 @@ bind    :: { Bind Var }
 bind    : LCOMMENT
         bind_name typedecl
         id_info
-        var '=' expr
+        bind_name '=' expr
         { NonRec $2 (Func $3 $4 $7) }
 
 bind_name   :: { Var }
@@ -108,7 +124,7 @@ unf     : OtherCon '[' ']'    { "OtherCon []" }
         ',' WorkFree '=' CON
         ',' Expandable '=' CON
         ',' Guidance '=' uf_guidance
-        Tmpl '=' type
+        Tmpl '=' expr
         '}'
         { "CoreUnfolding {...}" }
 
@@ -129,39 +145,62 @@ con     : CON       { Token $1 }
         | qCON      { uncurry QToken $1 }
 
 type        :: { Type }
-type        : '(' type ')'          { $2 }
-            | type type_terminal    { AppTy $1 $2 }
-            | type_terminal         { $1 }
+type        : '(' type ')'    { $2 }
+            | type_r          { $1 }
+
+type_r      :: { Type }
+            : type_l              { $1 }
+            | type_l '->' type    { TyConApp (Token "(->)") [$1, $3] }
+
+type_l      :: { Type }
+            : type_terminal '~' role type   { TyConApp (Token ("~" <> FS.fsLit (return $ roleChar $3) <> "#")) [$1, $4] }
+            | type type_terminal            { AppTy $1 $2 }
+            | type_terminal                 { $1 }
 
 type_terminal   :: { Type }
 type_terminal   : var           { TyVarTy $1 }
                 | con           { TyConApp $1 [] }
-                | '[' type ']'  { TyConApp (Token "List") [$2] }
-                | '(' ')'       { TyConApp (Token "Unit") [] }
+                | '[' type ']'  { TyConApp (Token "[]") [$2] }
+                | '(' ')'       { TyConApp (Token "()") [] }
+                | '(#' unboxed_tuples '#)'  { TyConApp (Token "(# .. #)") $2 }
+                | '(' type ')'  { $2 }
+
+unboxed_tuples    :: { [Type] }
+unboxed_tuples    : type                      { [$1] }
+                  | type ',' unboxed_tuples   { $1 : $3 }
 
 typedecl    :: { Type }
 typedecl    : '::' type      { $2 }
 
-coercion    :: { Coercion }
-coercion    : expr '::' type    { Coercion $1 $3 }
-
 expr    :: { Expr Var }
-expr    : '(' expr ')'              { $2 }
-        | expr_terminal '@' type    { App $1 (Type $3) }
-        | expr_terminal '`' CAST '`' coercion    { Cast $1 $5 }
-        | expr_terminal             { $1 }
-        | expr expr_list            { foldl App $1 $2 }
+expr    : '(' expr ')'                                            { $2 }
+        | expr_terminal '`' CAST '`' '(' coercion '::' type ')'   { Cast $1 $6 $8 }
+        | expr_list                                               { foldl1 App $1 }
 
-expr_list     : expr expr_list  { $1 : $2 }
-              | expr            { [$1] }
+expr_list     : expr expr_list            { $1 : $2 }
+              | expr_terminal             { [$1] }
 
 expr_terminal   :: { Expr Var }
-expr_terminal   : '$w/w' var    { Var (wwVar $1 $2) }
-                | var           { Var $1 }
-                | con           { Var $1 }
-                | PSTRING       { Lit (MachStr $1 True) }
-                | PINTEGER      { Lit (LitNumber $1 True) }
-                | INT           { Lit (LitNumber $1 False) }
+expr_terminal   : '$w/w' var              { Var (wwVar $1 $2) }
+                | var                     { Var $1 }
+                | con                     { Var $1 }
+                | PSTRING                 { Lit (MachStr $1 True) }
+                | PINTEGER                { Lit (LitNumber $1 True) }
+                | INT                     { Lit (LitNumber $1 False) }
+                | '@' type_terminal       { Type $2 }
+                | '(' expr ')'            { $2 }
+
+coercion    :: { Coercion }
+coercion    : SYM coercion                                          { SymCo $2 }
+            | '(' role ':' con '[' INT ']' '<' type '>' role ')'    { NthCo $2 (fromIntegral $6) (TyConAppCo $2 $4 [Refl $11 $9]) }
+
+role        :: { Role }
+role        : 'R#'  { Representational }
+            | 'N#'  { Nominal }
+            | '_R'  { Representational }
+            | '_N'  { Nominal }
+            | qR    { Representational }
+            | qN    { Nominal }
 
 {
 wwVar :: FastString -> Var -> Var

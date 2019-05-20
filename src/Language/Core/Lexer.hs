@@ -7,6 +7,7 @@ module Language.Core.Lexer (
 ) where
 
 import qualified Data.ByteString as B
+import Data.List
 import qualified Data.StringBuffer as SB
 import qualified DynFlags
 import qualified GHC
@@ -18,7 +19,10 @@ import qualified SrcLoc
 getDynFlags :: IO (GHC.DynFlags)
 getDynFlags = GHC.runGhc (Just GHC.Paths.libdir) $ do
   dflags <- GHC.getSessionDynFlags
-  let dflags' = DynFlags.xopt_set dflags LangExt.MagicHash
+  let dflags' = foldl'
+        DynFlags.xopt_set
+        dflags
+        [LangExt.UnboxedSums, LangExt.UnboxedTuples, LangExt.MagicHash]
   return dflags'
 
 lexTokenStream

@@ -9,6 +9,45 @@ import Test.Tasty.Hspec hiding (Failure, Success)
 spec_parser :: Spec
 spec_parser = do
   describe "lexes and parse" $ do
+    it "parses arrow and unboxed_tuples" $ do
+      simpl <- parseByteString $ B.intercalate
+        "\n"
+        [ "-- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}"
+        , "lvl1_rdgS :: x -> GHC.Prim.State# GHC.Prim.RealWorld -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)"
+        , "[GblId, Caf=NoCafRefs, Unf=OtherCon []]"
+        , "lvl1_rdgS = 0"
+        ]
+      shouldBe simpl $ Right
+        ( NonRec
+          (Token "lvl1_rdgS")
+          ( Func
+            ( TyConApp
+              (Token "(->)")
+              [ TyVarTy (Token "x")
+              , TyConApp
+                (Token "(->)")
+                [ AppTy (TyConApp (QToken "GHC.Prim" "State#") [])
+                        (TyConApp (QToken "GHC.Prim" "RealWorld") [])
+                , TyConApp
+                  (Token "(# .. #)")
+                  [ AppTy (TyConApp (QToken "GHC.Prim" "State#") [])
+                          (TyConApp (QToken "GHC.Prim" "RealWorld") [])
+                  , TyConApp (Token "()") []
+                  ]
+                ]
+              ]
+            )
+            ( IdInfo
+              { getIdInfo = [ ("IdType", "GlobalId")
+                            , ("Caf"   , "NoCafRefs")
+                            , ("Unf"   , "OtherCon []")
+                            ]
+              }
+            )
+            (Lit (LitNumber 0 False))
+          )
+        )
+
     it "parses lvl1_rdgS" $ do
       simpl <- parseByteString $ B.intercalate
         "\n"
@@ -41,7 +80,7 @@ spec_parser = do
       shouldBe simpl $ Right $ NonRec
         (Token "lvl2_rdgT")
         ( Func
-          (TyConApp (Token "List") [TyConApp (Token "Char") []])
+          (TyConApp (Token "[]") [TyConApp (Token "Char") []])
           (IdInfo [("IdType", "GlobalId")])
           ( App (Var (QToken "GHC.CString" "unpackCString#"))
                 (Var (Token "lvl1_rdgS"))
@@ -172,37 +211,45 @@ spec_parser = do
         ]
       shouldBe simpl $ Right
         ( NonRec
-          (Token "lvl33_rdhp")
+          (QToken "Main" ":main")
           ( Func
-            ( AppTy (TyConApp (QToken "Data.Vector.Fusion.Util" "Id") [])
-                    (TyConApp (Token "Int") [])
+            (AppTy (TyConApp (Token "IO") []) (TyConApp (Token "()") []))
+            ( IdInfo
+              { getIdInfo = [ ("IdType", "GlobalId")
+                            , ("Arity" , "1")
+                            , ("Unf"   , "CoreUnfolding {...}")
+                            ]
+              }
             )
-            (IdInfo {getIdInfo = [("IdType", "GlobalId"), ("Str", "x")]})
-            ( App
-              ( App
-                ( App
-                  ( App
-                    ( App
-                      (Var (QToken "Data.Vector.Internal.Check" "$werror"))
-                      ( Type
-                        ( AppTy
-                          (TyConApp (QToken "Data.Vector.Fusion.Util" "Id") [])
-                          (TyConApp (Token "Int") [])
-                        )
-                      )
-                    )
-                    ( App (Var (QToken "GHC.CString" "unpackCString#"))
-                          (Var (Token "lvl31_rdhn"))
-                    )
+            ( Cast
+              (Var (QToken "Main" "main2"))
+              ( SymCo
+                ( NthCo
+                  Nominal
+                  0
+                  ( TyConAppCo
+                    Nominal
+                    (Token "IO")
+                    [Refl Representational (TyConApp (Token "()") [])]
                   )
-                  (Lit (LitNumber 291 True))
-                )
-                ( App (Var (QToken "GHC.CString" "unpackCString#"))
-                      (Var (Token "lvl32_rdho"))
                 )
               )
-              (Var (QToken "Data.Vector.Fusion.Stream.Monadic" "emptyStream"))
+              ( TyConApp
+                (Token "~R#")
+                [ TyConApp
+                  (Token "(->)")
+                  [ AppTy (TyConApp (QToken "GHC.Prim" "State#") [])
+                          (TyConApp (QToken "GHC.Prim" "RealWorld") [])
+                  , TyConApp
+                    (Token "(# .. #)")
+                    [ AppTy (TyConApp (QToken "GHC.Prim" "State#") [])
+                            (TyConApp (QToken "GHC.Prim" "RealWorld") [])
+                    , TyConApp (Token "()") []
+                    ]
+                  ]
+                , AppTy (TyConApp (Token "IO") []) (TyConApp (Token "()") [])
+                ]
+              )
             )
           )
         )
-    

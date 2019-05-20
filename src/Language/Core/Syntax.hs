@@ -87,9 +87,6 @@ instance Ppr Literal where
   ppr (LitNumber n b) = blue $ integer n <> (if b then "#" else "")
   ppr (MachStr bs b) = yellow $ string (show bs) <> (if b then "#" else "")
 
-data Coercion = Coercion (Expr Var) Type
-  deriving (Eq, Show)
-
 data Expr b
   = Var Id
   | Lit Literal
@@ -97,7 +94,7 @@ data Expr b
   | Lam b (Expr b)
   | Let (Bind b) (Expr b)
   | Case (Expr b) b Type [Alt b]
-  | Cast (Expr b) Coercion
+  | Cast (Expr b) Coercion Type
   | Tick (Tickish Id) (Expr b)
   | Type Type
   deriving (Eq, Show)
@@ -107,3 +104,20 @@ instance Ppr (Expr Var) where
   ppr (Lit lit) = ppr lit
   ppr (App e1 e2) = "(" <> ppr e1 <> ")" <+> "(" <> ppr e2 <> ")"
   ppr (Type t) = "@" <+> ppr t
+
+data Role = Nominal | Representational | Phantom
+  deriving (Eq, Show)
+
+roleChar :: Role -> Char
+roleChar Nominal          = 'N'
+roleChar Representational = 'R'
+roleChar Phantom          = 'P'
+
+type CoercionN = Coercion
+data Coercion
+  = Refl Role Type
+  | SymCo Coercion
+  | NthCo Role Int Coercion
+  | TyConAppCo Role TyCon [Coercion]
+  | AppCo Coercion CoercionN
+  deriving (Eq, Show)

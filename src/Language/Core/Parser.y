@@ -43,6 +43,7 @@ import qualified SrcLoc
     '`'     { SrcLoc.L _ (ITbackquote) }
     '_'     { SrcLoc.L _ (ITunderscore) }
     '~'     { SrcLoc.L _ (ITtilde) }
+    '\\'    { SrcLoc.L _ (ITlam) }
     '->'    { SrcLoc.L _ (ITrarrow NormalSyntax) }
     '$w/w'  { SrcLoc.L _ (ITqvarsym ($$,"$")) }
 
@@ -84,10 +85,11 @@ import qualified SrcLoc
     PSTRING     { SrcLoc.L _ (ITprimstring _ $$) }
     PINTEGER    { SrcLoc.L _ (ITprimint _ $$) }
     INT         { SrcLoc.L _ (ITinteger (IL _ _ $$)) }
+    OPERATOR    { SrcLoc.L _ (ITvarsym $$) }
 
 %%
 
-bind    :: { Bind Var }
+bind    :: { Bind }
 bind    : LCOMMENT
         bind_name typedecl
         id_info
@@ -109,10 +111,14 @@ id_info_item  :: { (FastString, FastString) }
 id_info_item  : GblId     { ("IdType", "GlobalId") }
               | LclIdX    { ("IdType", "ExportedId") }
               | LclId     { ("IdType", "LocalId") }
-              | Caf '=' CON   { ("Caf", $3) }
-              | Str '=' VAR   { ("Str", $3) }
-              | Unf '=' unf   { ("Unf", $3) }
+              | Caf '=' CON       { ("Caf", $3) }
+              | Str strictness    { ("Str", $2) }
+              | Unf '=' unf       { ("Unf", $3) }
               | Arity '=' INT     { ("Arity", FS.fsLit $ show $3) }
+
+strictness    :: { FS.FastString }
+              : '=' VAR   { $2 }
+              | OPERATOR CON ',' CON OPERATOR CON ',' CON '>' VAR  { "<" <> $2 <> "," <> $4 <> "><" <> $6 <> "," <> $8 <> ">" <> $10 }
 
 unf     :: { FastString }
 unf     : OtherCon '[' ']'    { "OtherCon []" }
@@ -131,14 +137,14 @@ unf     : OtherCon '[' ']'    { "OtherCon []" }
 uf_guidance   : ALWAYS_IF '(' key_value_eq ')'
               { "UnfIfGoodArgs {" <> FS.fsLit (show $3) <> "}" }
 
-key_value_eq    :: { [(FastString, Expr Var)] }
+key_value_eq    :: { [(FastString, Expr)] }
                 : VAR '=' expr                      { ($1,$3) : [] }
                 | VAR '=' expr ',' key_value_eq     { ($1,$3) : $5 }
 
 
 var     :: { Var }
-var     : VAR       { Token $1 }
-        | qVAR      { uncurry QToken $1 }
+var     : VAR           { Token $1 }
+        | qVAR          { uncurry QToken $1 }
 
 con     :: { Var }
 con     : CON       { Token $1 }
@@ -172,7 +178,7 @@ unboxed_tuples    : type                      { [$1] }
 typedecl    :: { Type }
 typedecl    : '::' type      { $2 }
 
-expr    :: { Expr Var }
+expr    :: { Expr }
 expr    : '(' expr ')'                                            { $2 }
         | expr_terminal '`' CAST '`' '(' coercion '::' type ')'   { Cast $1 $6 $8 }
         | expr_list                                               { foldl1 App $1 }
@@ -180,7 +186,7 @@ expr    : '(' expr ')'                                            { $2 }
 expr_list     : expr expr_list            { $1 : $2 }
               | expr_terminal             { [$1] }
 
-expr_terminal   :: { Expr Var }
+expr_terminal   :: { Expr }
 expr_terminal   : '$w/w' var              { Var (wwVar $1 $2) }
                 | var                     { Var $1 }
                 | con                     { Var $1 }
@@ -189,6 +195,11 @@ expr_terminal   : '$w/w' var              { Var (wwVar $1 $2) }
                 | INT                     { Lit (LitNumber $1 False) }
                 | '@' type_terminal       { Type $2 }
                 | '(' expr ')'            { $2 }
+                | '\\' tyvars '->' expr   { Lam $2 $4 }
+
+tyvars      :: { [(Var, Type)] }
+tyvars      : '(' var '::' type ')'           { [($2, $4)] }
+            | '(' var '::' type ')' tyvars    { ($2, $4) : $6 }
 
 coercion    :: { Coercion }
 coercion    : SYM coercion                                          { SymCo $2 }
@@ -214,7 +225,7 @@ happyError tokens = Left $ "Parse error\n" ++ show (take 10 $ map SrcLoc.unLoc t
 -- instance (Show l, Show e) => Show (SrcLoc.GenLocated l e) where
 --   show (SrcLoc.L l e) = "L (" ++ show l ++ ") (" ++ show e ++ ")"
 
-parseByteStringWith :: GHC.DynFlags -> B.ByteString -> IO (Either String (Bind Var))
+parseByteStringWith :: GHC.DynFlags -> B.ByteString -> IO (Either String Bind)
 parseByteStringWith dflags buf = do
   result <- lexTokenStream buf
 
@@ -227,7 +238,7 @@ parseByteStringWith dflags buf = do
         md
         (Outputable.defaultErrStyle dflags)
 
-parseByteString :: B.ByteString -> IO (Either String (Bind Var))
+parseByteString :: B.ByteString -> IO (Either String Bind)
 parseByteString buf = do
   dflags <- getDynFlags
   parseByteStringWith dflags buf

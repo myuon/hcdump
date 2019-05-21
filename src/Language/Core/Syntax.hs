@@ -17,15 +17,15 @@ data DumpSimpl
 type ModuleStat = String
 
 -- We define @Type@ and some other things here, because they are not exported in ghc library.
-data Decls = Decls [Bind Var]
+data Decls = Decls [Bind]
   deriving (Eq, Show)
 
-data Bind b
-  = NonRec b (Func b)
-  | Rec [(b, Func b)]
+data Bind
+  = NonRec Var Func
+  | Rec [(Var, Func)]
   deriving (Eq, Show)
 
-instance Ppr (Bind Var) where
+instance Ppr Bind where
   ppr (NonRec id (Func typ info exp))
     = green (ppr id) <+> red (string "::") <+> ppr typ
     <$$> ppr info
@@ -37,14 +37,14 @@ newtype IdInfo = IdInfo { getIdInfo :: [(FastString, FastString)] }
 instance Ppr IdInfo where
   ppr (IdInfo xs)
     = red (string "[")
-    <> hcat (intersperse (red (string ",")) $ map (\(x,y) ->
+    <> hcat (intersperse (red (string ", ")) $ map (\(x,y) ->
       string (FS.unpackFS x)
       <+> red (string "=")
       <+> string (FS.unpackFS y)) xs)
     <> red (string "]")
 
-data Func b
-  = Func Type IdInfo (Expr b)
+data Func
+  = Func Type IdInfo Expr
   deriving (Eq, Show)
 
 type KindOrType = Type
@@ -74,7 +74,6 @@ instance Ppr Var where
   ppr (QToken q s) = dullmagenta (string (FS.unpackFS q)) <> "." <> string (FS.unpackFS s)
 
 type Id = Var
-type Arg b = Expr b
 type Alt b = ()
 type Tickish b = ()
 
@@ -87,19 +86,19 @@ instance Ppr Literal where
   ppr (LitNumber n b) = blue $ integer n <> (if b then "#" else "")
   ppr (MachStr bs b) = yellow $ string (show bs) <> (if b then "#" else "")
 
-data Expr b
+data Expr
   = Var Id
   | Lit Literal
-  | App (Expr b) (Arg b)
-  | Lam b (Expr b)
-  | Let (Bind b) (Expr b)
-  | Case (Expr b) b Type [Alt b]
-  | Cast (Expr b) Coercion Type
-  | Tick (Tickish Id) (Expr b)
+  | App Expr Expr
+  | Lam [(Var, Type)] Expr
+  | Let Bind Expr
+  | Case Expr Var Type [Alt Var]
+  | Cast Expr Coercion Type
+  | Tick (Tickish Id) Expr
   | Type Type
   deriving (Eq, Show)
 
-instance Ppr (Expr Var) where
+instance Ppr Expr where
   ppr (Var x) = ppr x
   ppr (Lit lit) = ppr lit
   ppr (App e1 e2) = "(" <> ppr e1 <> ")" <+> "(" <> ppr e2 <> ")"

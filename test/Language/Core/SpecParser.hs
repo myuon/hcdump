@@ -253,3 +253,81 @@ spec_parser = do
             )
           )
         )
+
+    it "parses lvl28_rdhk" $ do
+      simpl <- parseByteString $ B.intercalate
+        "\n"
+        [ "-- RHS size: {terms: 10, types: 3, coercions: 0, joins: 0/0}"
+        , "lvl28_rdhk :: GHC.Prim.Int# -> GHC.Prim.Int# -> Double"
+        , "[GblId, Arity=2, Str=<B,U><B,U>x, Unf=OtherCon []]"
+        , "lvl28_rdhk"
+        , "  = \\ (x_a8pv :: GHC.Prim.Int#) (n#_a8qS :: GHC.Prim.Int#) ->"
+        , "      Data.Vector.Internal.Check.$wcheckError"
+        , "        @ Double"
+        , "        lvl27_rdhj"
+        , "        245#"
+        , "        Data.Vector.Internal.Check.Bounds"
+        , "        lvl26_rdhh"
+        , "        (Data.Vector.Internal.Check.checkIndex_msg# x_a8pv n#_a8qS)"
+        ]
+      shouldBe simpl $ Right
+        ( NonRec
+          (Token "lvl28_rdhk")
+          ( Func
+            ( TyConApp
+              (Token "(->)")
+              [ TyConApp (QToken "GHC.Prim" "Int#") []
+              , TyConApp
+                (Token "(->)")
+                [ TyConApp (QToken "GHC.Prim" "Int#") []
+                , TyConApp (Token "Double")           []
+                ]
+              ]
+            )
+            ( IdInfo
+              { getIdInfo = [ ("IdType", "GlobalId")
+                            , ("Arity" , "2")
+                            , ("Str"   , "<B,U><B,U>x")
+                            , ("Unf"   , "OtherCon []")
+                            ]
+              }
+            )
+            ( Lam
+              [ (Token "x_a8pv" , TyConApp (QToken "GHC.Prim" "Int#") [])
+              , (Token "n#_a8qS", TyConApp (QToken "GHC.Prim" "Int#") [])
+              ]
+              ( App
+                ( App
+                  ( App
+                    ( App
+                      ( App
+                        ( App
+                          ( Var
+                            (QToken "Data.Vector.Internal.Check" "$wcheckError")
+                          )
+                          (Type (TyConApp (Token "Double") []))
+                        )
+                        (Var (Token "lvl27_rdhj"))
+                      )
+                      (Lit (LitNumber 245 True))
+                    )
+                    (Var (QToken "Data.Vector.Internal.Check" "Bounds"))
+                  )
+                  (Var (Token "lvl26_rdhh"))
+                )
+                ( App
+                  ( App
+                    ( App
+                      ( Var
+                        (QToken "Data.Vector.Internal.Check" "checkIndex_msg#")
+                      )
+                      (Var (Token "x_a8pv"))
+                    )
+                    (Var (Token "n#"))
+                  )
+                  (Var (Token "_a8qS"))
+                )
+              )
+            )
+          )
+        )
